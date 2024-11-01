@@ -1,6 +1,7 @@
 FROM alpine:3.13.4 as builder
 
-RUN apk add --update build-base git bash gcc make g++ zlib-dev linux-headers pcre-dev openssl-dev
+RUN apk add --update build-base git bash gcc make g++ zlib-dev linux-headers pcre-dev openssl-dev && \
+    rm -rf /var/cache/apk/*
 
 # nginx, nginx-rtmp-module 다운
 RUN git clone https://github.com/arut/nginx-rtmp-module.git && \
@@ -12,11 +13,15 @@ RUN cd nginx && ./auto/configure --add-module=../nginx-rtmp-module && make && ma
 FROM alpine:3.13.4 as nginx
 
 # ffmpeg 설치
-RUN apk add --update pcre ffmpeg
+RUN apk add --update pcre ffmpeg && \
+    rm -rf /var/cache/apk/*
 
 # 빌드된 파일 및 설정파일 복사
 COPY --from=builder /usr/local/nginx /usr/local/nginx
 COPY nginx.conf /usr/local/nginx/conf/nginx.conf
+
+# 포트 노출
+EXPOSE 1935 8080
 
 # 실행
 ENTRYPOINT ["/usr/local/nginx/sbin/nginx"]
