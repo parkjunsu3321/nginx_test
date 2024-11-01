@@ -1,20 +1,26 @@
-FROM alpine:3.13.4 as builder
+# 1단계: 빌드 단계
+FROM ubuntu:20.04 as builder
 
-RUN apk add --update build-base git bash gcc make g++ zlib-dev linux-headers pcre-dev openssl-dev && \
-    rm -rf /var/cache/apk/*
+# 필수 패키지 설치
+RUN apt-get update && apt-get install -y \
+    build-essential git zlib1g-dev libpcre3-dev libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # nginx, nginx-rtmp-module 다운
 RUN git clone https://github.com/arut/nginx-rtmp-module.git && \
     git clone https://github.com/nginx/nginx.git
 
 # nginx를 설치하고 nginx-rtmp-module 추가
-RUN cd nginx && ./auto/configure --add-module=../nginx-rtmp-module && make && make install
+RUN cd nginx && \
+    ./auto/configure --add-module=../nginx-rtmp-module && \
+    make && make install
 
-FROM alpine:3.13.4 as nginx
+# 2단계: Nginx 실행 단계
+FROM ubuntu:20.04 as nginx
 
 # ffmpeg 설치
-RUN apk add --update pcre ffmpeg && \
-    rm -rf /var/cache/apk/*
+RUN apt-get update && apt-get install -y ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 # 빌드된 파일 및 설정파일 복사
 COPY --from=builder /usr/local/nginx /usr/local/nginx
